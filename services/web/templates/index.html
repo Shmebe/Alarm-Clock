@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Alarm Clock</title>
+    <style>
+        body { font-family: sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+        .badge { padding: 0.2rem 0.6rem; border-radius: 4px; color: white; font-size: 0.85rem; }
+        .badge.on { background: #2e7d32; }
+        .badge.off { background: #c62828; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        td, th { text-align: left; padding: 0.4rem; border-bottom: 1px solid #ddd; }
+        form.inline { display: inline; }
+        fieldset { margin-top: 2rem; }
+    </style>
+</head>
+<body>
+    <h1>Alarm Clock</h1>
+
+    <p>
+        Колонка:
+        {% if bt_status.connected %}
+            <span class="badge on">на зв'язку</span> ({{ bt_status.device_mac }})
+        {% else %}
+            <span class="badge off">не підключена</span>
+        {% endif %}
+    </p>
+
+    <table>
+        <tr><th>Час</th><th>Дні</th><th>Мітка</th><th>Статус</th><th></th></tr>
+        {% for alarm in alarms %}
+        <tr>
+            <td>{{ alarm.time }}</td>
+            <td>{{ alarm.days }}</td>
+            <td>{{ alarm.label }}</td>
+            <td>{{ alarm.state }}</td>
+            <td>
+                <form class="inline" method="post" action="/alarms/{{ alarm.id }}/dismiss">
+                    <button type="submit">dismiss</button>
+                </form>
+                <form class="inline" method="post" action="/alarms/{{ alarm.id }}/delete">
+                    <button type="submit">видалити</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <fieldset>
+        <legend>Новий алярм</legend>
+        <form method="post" action="/alarms">
+            <label>Час: <input type="time" name="time" required></label><br>
+            <label>Дні (mon,tue,... або "once"): <input type="text" name="days" value="once"></label><br>
+            <label>Мітка: <input type="text" name="label"></label><br>
+            <label>Звуковий файл (шлях у контейнері): <input type="text" name="sound_file" required></label><br>
+            <button type="submit">Додати</button>
+        </form>
+    </fieldset>
+</body>
+</html>

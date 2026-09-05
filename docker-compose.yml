@@ -1,0 +1,43 @@
+version: "3.9"
+
+services:
+  # Needs host networking + D-Bus socket to talk to BlueZ directly.
+  # Owns the actual Bluetooth adapter and the bluealsa daemon.
+  bt-manager:
+    build: ./services/bt-manager
+    network_mode: host
+    privileged: true          # or narrow to: cap_add: [NET_ADMIN, NET_RAW]
+    environment:
+      - KNOWN_DEVICES_PATH=/config/known_devices.yml
+      - ALARM_CORE_URL=http://localhost:8082
+    volumes:
+      - /var/run/dbus:/var/run/dbus
+      - /var/run/bluealsa:/var/run/bluealsa
+      - ./config/known_devices.yml:/config/known_devices.yml:ro
+    restart: unless-stopped
+
+  # Regular bridge network. Reaches bt-manager via host.docker.internal
+  # because bt-manager lives on the host network namespace.
+  alarm-core:
+    build: ./services/alarm-core
+    environment:
+      - DB_PATH=/data/alarms.db
+      - BT_MANAGER_URL=http://host.docker.internal:8081
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./data:/data
+      - /var/run/bluealsa:/var/run/bluealsa   # needed to play audio via the bluealsa ALSA plugin
+    ports:
+      - "8082:8082"
+    restart: unless-stopped
+
+  web:
+    build: ./services/web
+    environment:
+      - ALARM_CORE_URL=http://alarm-core:8082
+    ports:
+      - "8080:8080"
+    depends_on:
+      - alarm-core
+    restart: unless-stopped
