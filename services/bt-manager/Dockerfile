@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         python3-gi \
         bluez \
         bluez-tools \
-        bluealsa \
+        bluez-alsa-utils \
         dbus \
     && rm -rf /var/lib/apt/lists/*
 

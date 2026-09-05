@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   # Needs host networking + D-Bus socket to talk to BlueZ directly.
   # Owns the actual Bluetooth adapter and the bluealsa daemon.
