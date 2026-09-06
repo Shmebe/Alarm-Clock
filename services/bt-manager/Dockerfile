@@ -22,7 +22,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir --break-system-packages -r requirements.txt
 
-COPY manager.py api.py ./
+COPY manager.py api.py entrypoint.sh ./
+RUN chmod +x entrypoint.sh
 
 EXPOSE 8081
-CMD ["python3", "-m", "uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8081"]
+CMD ["./entrypoint.sh"]

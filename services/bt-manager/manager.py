@@ -110,7 +110,7 @@ class BTManager:
             self._device_proxy().Connect()
             return True
         except dbus.exceptions.DBusException as e:
-            log.debug("Connect attempt failed: %s", e)
+            log.warning("Connect attempt failed: %s", e)
             return False
 
     def _reconnect_loop(self):
