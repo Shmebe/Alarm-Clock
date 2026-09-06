@@ -1,4 +1,4 @@
 speaker:
-  mac: "B8:D5:0B:48:CC:FE"   # replace with your speaker's real MAC address
+  mac: "AA:BB:CC:DD:EE:FF"   # replace with your speaker's real MAC address
   name: "Bedroom Speaker"
   profile: a2dp

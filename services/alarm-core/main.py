@@ -1,3 +1,4 @@
+import logging
 import os
 import signal
 import subprocess
@@ -6,11 +7,14 @@ from typing import List
 
 import requests
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from models import Alarm, SessionLocal, init_db
 from scheduler import on_bt_connected, start_background
 from state_machine import AlarmState
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+log = logging.getLogger("alarm-core")
 
 BT_MANAGER_URL = os.environ.get("BT_MANAGER_URL", "http://localhost:8081")
 SOUNDS_DIR = os.environ.get("SOUNDS_DIR", "/app/sounds")
@@ -19,6 +23,10 @@ app = FastAPI(title="alarm-core")
 
 _test_lock = threading.Lock()
 _test_process = None
+
+
+def _sound_exists(sound_file: str) -> bool:
+    return os.path.isfile(os.path.join(SOUNDS_DIR, sound_file))
 
 
 class DebugPlayIn(BaseModel):
@@ -33,6 +41,11 @@ class AlarmIn(BaseModel):
     sound_file: str = "classic-beep.wav"
     volume: int = 50
     enabled: bool = True
+
+    @field_validator("volume")
+    @classmethod
+    def _clamp_volume(cls, v):
+        return max(0, min(100, v))
 
 
 class AlarmOut(AlarmIn):
@@ -54,25 +67,37 @@ def list_alarms():
     session = SessionLocal()
     try:
         return session.query(Alarm).all()
+    except Exception:
+        log.exception("Failed to list alarms")
+        raise HTTPException(500, "Failed to read alarms - check alarm-core logs")
     finally:
         session.close()
 
 
 @app.post("/alarms", response_model=AlarmOut)
 def create_alarm(alarm: AlarmIn):
+    if not _sound_exists(alarm.sound_file):
+        raise HTTPException(400, f"Sound file not found in library: {alarm.sound_file}")
     session = SessionLocal()
     try:
         db_alarm = Alarm(**alarm.model_dump(), state=AlarmState.SCHEDULED.value)
         session.add(db_alarm)
         session.commit()
         session.refresh(db_alarm)
+        log.info("Created alarm %s at %s (days=%s, vol=%s)", db_alarm.id, db_alarm.time, db_alarm.days, db_alarm.volume)
         return db_alarm
+    except Exception:
+        session.rollback()
+        log.exception("Failed to create alarm")
+        raise HTTPException(500, "Failed to save alarm - check alarm-core logs")
     finally:
         session.close()
 
 
 @app.put("/alarms/{alarm_id}", response_model=AlarmOut)
 def update_alarm(alarm_id: int, alarm: AlarmIn):
+    if not _sound_exists(alarm.sound_file):
+        raise HTTPException(400, f"Sound file not found in library: {alarm.sound_file}")
     session = SessionLocal()
     try:
         db_alarm = session.get(Alarm, alarm_id)
@@ -83,6 +108,12 @@ def update_alarm(alarm_id: int, alarm: AlarmIn):
         session.commit()
         session.refresh(db_alarm)
         return db_alarm
+    except HTTPException:
+        raise
+    except Exception:
+        session.rollback()
+        log.exception("Failed to update alarm %s", alarm_id)
+        raise HTTPException(500, "Failed to update alarm - check alarm-core logs")
     finally:
         session.close()
 

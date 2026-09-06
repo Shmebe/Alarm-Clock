@@ -31,6 +31,9 @@ def _play_sound(sound_file, device_mac, volume=50):
     volume = max(0, min(100, volume))
     device_arg = f"bluealsa:DEV={device_mac},PROFILE=a2dp,VOL={volume}"
     sound_path = os.path.join(SOUNDS_DIR, sound_file)
+    if not os.path.isfile(sound_path):
+        log.error("Sound file missing, cannot play: %s", sound_path)
+        return
     log.info("Playing %s on %s", sound_path, device_arg)
     subprocess.Popen(["aplay", "-D", device_arg, sound_path])
 

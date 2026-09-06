@@ -28,6 +28,13 @@
 <body>
     <h1>Alarm Clock</h1>
 
+    {% if error %}
+    <p style="background:#ffebee; color:#b71c1c; padding:0.6rem 1rem; border-radius:4px; border:1px solid #f5c6cb;">
+        ⚠ {{ error }}
+    </p>
+    {% endif %}
+
+
     <p>
         Колонка:
         {% if bt_status.connected %}

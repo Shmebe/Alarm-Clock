@@ -1,4 +1,5 @@
 import os
+import urllib.parse
 
 import requests
 from fastapi import FastAPI, Form, Request
@@ -32,12 +33,24 @@ def _format_days(days: str) -> str:
     return ", ".join(DAY_LABELS.get(d, d) for d in parts) or days
 
 
+def _error_redirect(message: str) -> RedirectResponse:
+    return RedirectResponse(f"/?error={urllib.parse.quote(message)}", status_code=303)
+
+
 @app.get("/")
 def index(request: Request):
+    error = request.query_params.get("error")
+
     try:
-        alarms = requests.get(f"{ALARM_CORE_URL}/alarms", timeout=5).json()
-    except requests.RequestException:
+        alarms_resp = requests.get(f"{ALARM_CORE_URL}/alarms", timeout=5)
+        alarms = alarms_resp.json() if alarms_resp.ok else []
+        if not alarms_resp.ok and not error:
+            error = f"alarm-core: {alarms_resp.status_code} {alarms_resp.text}"
+    except requests.RequestException as e:
         alarms = []
+        if not error:
+            error = f"alarm-core unreachable: {e}"
+
     try:
         bt_status = requests.get(f"{ALARM_CORE_URL}/bt-status", timeout=5).json()
     except requests.RequestException:
@@ -53,7 +66,13 @@ def index(request: Request):
 
     return templates.TemplateResponse(
         "index.html",
-        {"request": request, "alarms": alarms, "bt_status": bt_status, "sounds": sounds},
+        {
+            "request": request,
+            "alarms": alarms,
+            "bt_status": bt_status,
+            "sounds": sounds,
+            "error": error,
+        },
     )
 
 
@@ -65,18 +84,26 @@ def create_alarm(
     sound_file: str = Form(...),
     volume: int = Form(50),
 ):
-    requests.post(
-        f"{ALARM_CORE_URL}/alarms",
-        json={
-            "time": time,
-            "days": days,
-            "label": label,
-            "sound_file": sound_file,
-            "volume": volume,
-            "enabled": True,
-        },
-        timeout=5,
-    )
+    try:
+        resp = requests.post(
+            f"{ALARM_CORE_URL}/alarms",
+            json={
+                "time": time,
+                "days": days,
+                "label": label,
+                "sound_file": sound_file,
+                "volume": volume,
+                "enabled": True,
+            },
+            timeout=5,
+        )
+    except requests.RequestException as e:
+        return _error_redirect(f"alarm-core unreachable: {e}")
+
+    if not resp.ok:
+        detail = resp.json().get("detail", resp.text) if resp.headers.get("content-type", "").startswith("application/json") else resp.text
+        return _error_redirect(f"Не вдалось зберегти алярм: {detail}")
+
     return RedirectResponse("/", status_code=303)
 
 
