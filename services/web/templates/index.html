@@ -12,6 +12,9 @@
         td, th { text-align: left; padding: 0.4rem; border-bottom: 1px solid #ddd; }
         form.inline { display: inline; }
         fieldset { margin-top: 2rem; }
+        .mixer-row { display: flex; align-items: center; gap: 0.6rem; }
+        .mixer-row input[type="range"] { flex: 1; }
+        .mixer-row output { width: 3.2em; text-align: right; font-variant-numeric: tabular-nums; }
     </style>
 </head>
 <body>
@@ -27,12 +30,14 @@
     </p>
 
     <table>
-        <tr><th>Час</th><th>Дні</th><th>Мітка</th><th>Статус</th><th></th></tr>
+        <tr><th>Час</th><th>Дні</th><th>Мітка</th><th>Звук</th><th>Гучність</th><th>Статус</th><th></th></tr>
         {% for alarm in alarms %}
         <tr>
             <td>{{ alarm.time }}</td>
             <td>{{ alarm.days }}</td>
             <td>{{ alarm.label }}</td>
+            <td>{{ alarm.sound_file }}</td>
+            <td>{{ alarm.volume }}%</td>
             <td>{{ alarm.state }}</td>
             <td>
                 <form class="inline" method="post" action="/alarms/{{ alarm.id }}/dismiss">
@@ -52,7 +57,21 @@
             <label>Час: <input type="time" name="time" required></label><br>
             <label>Дні (mon,tue,... або "once"): <input type="text" name="days" value="once"></label><br>
             <label>Мітка: <input type="text" name="label"></label><br>
-            <label>Звуковий файл (шлях у контейнері): <input type="text" name="sound_file" required></label><br>
+            <label>Звук:
+                <select name="sound_file" required>
+                    {% for sound in sounds %}
+                    <option value="{{ sound }}" {% if sound == "classic-beep.wav" %}selected{% endif %}>{{ sound }}</option>
+                    {% else %}
+                    <option value="classic-beep.wav">classic-beep.wav (бібліотека порожня, звірся з /sounds на alarm-core)</option>
+                    {% endfor %}
+                </select>
+            </label><br>
+            <div class="mixer-row">
+                <label for="volume">Гучність:</label>
+                <input type="range" id="volume" name="volume" min="0" max="100" value="50"
+                       oninput="document.getElementById('volume-readout').value = this.value + '%'">
+                <output id="volume-readout">50%</output>
+            </div>
             <button type="submit">Додати</button>
         </form>
     </fieldset>

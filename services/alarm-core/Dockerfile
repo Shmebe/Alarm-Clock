@@ -13,10 +13,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libasound2-plugin-bluez \
     && rm -rf /var/lib/apt/lists/*
 
-<<<<<<< Updated upstream
 RUN cat > /etc/asound.conf << 'EOF'
 pcm.bluealsa {
-    @args [ DEV PROFILE SRV ]
+    @args [ DEV PROFILE VOL SRV ]
     @args.DEV {
         type string
         default "00:00:00:00:00:00"
@@ -24,6 +23,10 @@ pcm.bluealsa {
     @args.PROFILE {
         type string
         default "a2dp"
+    }
+    @args.VOL {
+        type string
+        default "unchanged"
     }
     @args.SRV {
         type string
@@ -34,6 +37,7 @@ pcm.bluealsa {
         type bluealsa
         device $DEV
         profile $PROFILE
+        volume $VOL
         service $SRV
     }
 }
@@ -48,9 +52,6 @@ ctl.bluealsa {
     service $SRV
 }
 EOF
-=======
-COPY asound.conf /etc/asound.conf
->>>>>>> Stashed changes
 
 WORKDIR /app
 COPY requirements.txt .

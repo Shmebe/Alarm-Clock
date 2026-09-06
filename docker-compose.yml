@@ -10,7 +10,6 @@ services:
       - ALARM_CORE_URL=http://localhost:8082
     volumes:
       - /var/run/dbus:/var/run/dbus
-      - /var/run/bluealsa:/var/run/bluealsa
       - ./config/known_devices.yml:/config/known_devices.yml:ro
     restart: unless-stopped
 
@@ -25,7 +24,6 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./data:/data
-      - /var/run/dbus:/var/run/dbus
       - /var/run/dbus:/var/run/dbus
       - /var/run/bluealsa:/var/run/bluealsa   # needed to play audio via the bluealsa ALSA plugin
     ports:

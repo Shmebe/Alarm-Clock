@@ -14,6 +14,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 log = logging.getLogger("scheduler")
 
 BT_MANAGER_URL = os.environ.get("BT_MANAGER_URL", "http://localhost:8081")
+SOUNDS_DIR = os.environ.get("SOUNDS_DIR", "/app/sounds")
 CHECK_INTERVAL = 20  # seconds
 
 
@@ -26,10 +27,12 @@ def _bt_status():
         return {"connected": False, "device_mac": None}
 
 
-def _play_sound(sound_file, device_mac):
-    device_arg = f"bluealsa:DEV={device_mac},PROFILE=a2dp"
-    log.info("Playing %s on %s", sound_file, device_arg)
-    subprocess.Popen(["aplay", "-D", device_arg, sound_file])
+def _play_sound(sound_file, device_mac, volume=50):
+    volume = max(0, min(100, volume))
+    device_arg = f"bluealsa:DEV={device_mac},PROFILE=a2dp,VOL={volume}"
+    sound_path = os.path.join(SOUNDS_DIR, sound_file)
+    log.info("Playing %s on %s", sound_path, device_arg)
+    subprocess.Popen(["aplay", "-D", device_arg, sound_path])
 
 
 def _matches_now(alarm: Alarm, now: datetime) -> bool:
@@ -62,7 +65,7 @@ def _handle_trigger(alarm_id: int):
         if status.get("connected"):
             alarm.state = AlarmState.PLAYING.value
             session.commit()
-            _play_sound(alarm.sound_file, status["device_mac"])
+            _play_sound(alarm.sound_file, status["device_mac"], alarm.volume)
         else:
             alarm.state = AlarmState.WAITING_FOR_SPEAKER.value
             session.commit()
@@ -86,7 +89,7 @@ def on_bt_connected():
         device_mac = status.get("device_mac")
         for alarm in waiting:
             alarm.state = AlarmState.PLAYING.value
-            _play_sound(alarm.sound_file, device_mac)
+            _play_sound(alarm.sound_file, device_mac, alarm.volume)
         session.commit()
     finally:
         session.close()

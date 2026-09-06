@@ -16,7 +16,8 @@ class Alarm(Base):
     time = Column(String, nullable=False)          # "HH:MM"
     days = Column(String, default="once")           # "mon,tue,wed,thu,fri" or "once"
     label = Column(String, default="")
-    sound_file = Column(String, nullable=False)
+    sound_file = Column(String, nullable=False, default="classic-beep.wav")
+    volume = Column(Integer, default=50)            # 0-100, forwarded to bluealsa's VOL=
     enabled = Column(Boolean, default=True)
     state = Column(String, default="scheduled")
     last_fired_at = Column(DateTime, nullable=True)

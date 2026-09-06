@@ -21,9 +21,14 @@ def index(request: Request):
         bt_status = requests.get(f"{ALARM_CORE_URL}/bt-status", timeout=5).json()
     except requests.RequestException:
         bt_status = {"connected": False, "device_mac": None}
+    try:
+        sounds = requests.get(f"{ALARM_CORE_URL}/sounds", timeout=5).json().get("sounds", [])
+    except requests.RequestException:
+        sounds = []
 
     return templates.TemplateResponse(
-        "index.html", {"request": request, "alarms": alarms, "bt_status": bt_status}
+        "index.html",
+        {"request": request, "alarms": alarms, "bt_status": bt_status, "sounds": sounds},
     )
 
 
@@ -33,6 +38,7 @@ def create_alarm(
     days: str = Form("once"),
     label: str = Form(""),
     sound_file: str = Form(...),
+    volume: int = Form(50),
 ):
     requests.post(
         f"{ALARM_CORE_URL}/alarms",
@@ -41,6 +47,7 @@ def create_alarm(
             "days": days,
             "label": label,
             "sound_file": sound_file,
+            "volume": volume,
             "enabled": True,
         },
         timeout=5,

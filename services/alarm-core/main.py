@@ -10,6 +10,7 @@ from scheduler import on_bt_connected, start_background
 from state_machine import AlarmState
 
 BT_MANAGER_URL = os.environ.get("BT_MANAGER_URL", "http://localhost:8081")
+SOUNDS_DIR = os.environ.get("SOUNDS_DIR", "/app/sounds")
 
 app = FastAPI(title="alarm-core")
 
@@ -18,7 +19,8 @@ class AlarmIn(BaseModel):
     time: str
     days: str = "once"
     label: str = ""
-    sound_file: str
+    sound_file: str = "classic-beep.wav"
+    volume: int = 50
     enabled: bool = True
 
 
@@ -106,6 +108,18 @@ def dismiss_alarm(alarm_id: int):
 def bt_connected_event():
     on_bt_connected()
     return {"ok": True}
+
+
+@app.get("/sounds")
+def list_sounds():
+    try:
+        files = sorted(
+            f for f in os.listdir(SOUNDS_DIR)
+            if f.lower().endswith((".wav", ".mp3", ".ogg"))
+        )
+    except FileNotFoundError:
+        files = []
+    return {"sounds": files}
 
 
 @app.get("/bt-status")
