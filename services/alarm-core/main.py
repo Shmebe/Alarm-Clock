@@ -1,4 +1,7 @@
 import os
+import signal
+import subprocess
+import threading
 from typing import List
 
 import requests
@@ -13,6 +16,14 @@ BT_MANAGER_URL = os.environ.get("BT_MANAGER_URL", "http://localhost:8081")
 SOUNDS_DIR = os.environ.get("SOUNDS_DIR", "/app/sounds")
 
 app = FastAPI(title="alarm-core")
+
+_test_lock = threading.Lock()
+_test_process = None
+
+
+class DebugPlayIn(BaseModel):
+    sound_file: str
+    volume: int = 50
 
 
 class AlarmIn(BaseModel):
@@ -104,6 +115,20 @@ def dismiss_alarm(alarm_id: int):
         session.close()
 
 
+@app.post("/alarms/{alarm_id}/toggle")
+def toggle_alarm(alarm_id: int):
+    session = SessionLocal()
+    try:
+        db_alarm = session.get(Alarm, alarm_id)
+        if not db_alarm:
+            raise HTTPException(404, "Alarm not found")
+        db_alarm.enabled = not db_alarm.enabled
+        session.commit()
+        return {"ok": True, "enabled": db_alarm.enabled}
+    finally:
+        session.close()
+
+
 @app.post("/events/bt-connected")
 def bt_connected_event():
     on_bt_connected()
@@ -129,3 +154,58 @@ def bt_status():
         return r.json()
     except requests.RequestException:
         return {"connected": False, "device_mac": None}
+
+
+def _stop_test_process():
+    global _test_process
+    if _test_process and _test_process.poll() is None:
+        _test_process.terminate()
+        try:
+            _test_process.wait(timeout=2)
+        except subprocess.TimeoutExpired:
+            _test_process.kill()
+    _test_process = None
+
+
+@app.post("/debug/play")
+def debug_play(payload: DebugPlayIn):
+    global _test_process
+    status = bt_status()
+    if not status.get("connected"):
+        raise HTTPException(400, "Speaker not connected")
+
+    volume = max(0, min(100, payload.volume))
+    device_arg = f"bluealsa:DEV={status['device_mac']},PROFILE=a2dp,VOL={volume}"
+    sound_path = os.path.join(SOUNDS_DIR, payload.sound_file)
+    if not os.path.isfile(sound_path):
+        raise HTTPException(404, f"Sound file not found: {payload.sound_file}")
+
+    with _test_lock:
+        _stop_test_process()
+        _test_process = subprocess.Popen(["aplay", "-D", device_arg, sound_path])
+    return {"ok": True, "playing": payload.sound_file, "volume": volume}
+
+
+@app.post("/debug/pause")
+def debug_pause():
+    with _test_lock:
+        if _test_process and _test_process.poll() is None:
+            _test_process.send_signal(signal.SIGSTOP)
+            return {"ok": True, "paused": True}
+    return {"ok": False, "reason": "nothing playing"}
+
+
+@app.post("/debug/resume")
+def debug_resume():
+    with _test_lock:
+        if _test_process and _test_process.poll() is None:
+            _test_process.send_signal(signal.SIGCONT)
+            return {"ok": True, "paused": False}
+    return {"ok": False, "reason": "nothing playing"}
+
+
+@app.post("/debug/stop")
+def debug_stop():
+    with _test_lock:
+        _stop_test_process()
+    return {"ok": True}

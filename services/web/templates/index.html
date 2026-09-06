@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>Alarm Clock</title>
     <style>
-        body { font-family: sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+        body { font-family: sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
         .badge { padding: 0.2rem 0.6rem; border-radius: 4px; color: white; font-size: 0.85rem; }
         .badge.on { background: #2e7d32; }
         .badge.off { background: #c62828; }
@@ -12,9 +12,17 @@
         td, th { text-align: left; padding: 0.4rem; border-bottom: 1px solid #ddd; }
         form.inline { display: inline; }
         fieldset { margin-top: 2rem; }
-        .mixer-row { display: flex; align-items: center; gap: 0.6rem; }
+        .mixer-row { display: flex; align-items: center; gap: 0.6rem; margin: 0.4rem 0; }
         .mixer-row input[type="range"] { flex: 1; }
         .mixer-row output { width: 3.2em; text-align: right; font-variant-numeric: tabular-nums; }
+        .state { padding: 0.15rem 0.5rem; border-radius: 4px; color: white; font-size: 0.8rem; white-space: nowrap; }
+        .state-scheduled { background: #607d8b; }
+        .state-triggered { background: #f9a825; color: #222; }
+        .state-waiting_for_speaker { background: #e64a19; }
+        .state-playing { background: #2e7d32; }
+        .state-dismissed { background: #9e9e9e; }
+        .disabled-row { opacity: 0.45; }
+        #debug-status { font-size: 0.9rem; color: #555; }
     </style>
 </head>
 <body>
@@ -30,15 +38,23 @@
     </p>
 
     <table>
-        <tr><th>Час</th><th>Дні</th><th>Мітка</th><th>Звук</th><th>Гучність</th><th>Статус</th><th></th></tr>
-        {% for alarm in alarms %}
         <tr>
+            <th>Час</th><th>Дні</th><th>Мітка</th><th>Звук</th><th>Гучність</th>
+            <th>Статус</th><th>Увімк.</th><th></th>
+        </tr>
+        {% for alarm in alarms %}
+        <tr class="{% if not alarm.enabled %}disabled-row{% endif %}">
             <td>{{ alarm.time }}</td>
-            <td>{{ alarm.days }}</td>
+            <td>{{ alarm.days_display }}</td>
             <td>{{ alarm.label }}</td>
             <td>{{ alarm.sound_file }}</td>
             <td>{{ alarm.volume }}%</td>
-            <td>{{ alarm.state }}</td>
+            <td><span class="state state-{{ alarm.state }}">{{ alarm.state }}</span></td>
+            <td>
+                <form class="inline" method="post" action="/alarms/{{ alarm.id }}/toggle">
+                    <button type="submit">{{ "вимкн." if alarm.enabled else "увімк." }}</button>
+                </form>
+            </td>
             <td>
                 <form class="inline" method="post" action="/alarms/{{ alarm.id }}/dismiss">
                     <button type="submit">dismiss</button>
@@ -48,13 +64,15 @@
                 </form>
             </td>
         </tr>
+        {% else %}
+        <tr><td colspan="8">Будильників ще нема.</td></tr>
         {% endfor %}
     </table>
 
     <fieldset>
         <legend>Новий алярм</legend>
         <form method="post" action="/alarms">
-            <label>Час: <input type="time" name="time" required></label><br>
+            <label>Час: <input type="time" name="time" id="time-input" required></label><br>
             <label>Дні (mon,tue,... або "once"): <input type="text" name="days" value="once"></label><br>
             <label>Мітка: <input type="text" name="label"></label><br>
             <label>Звук:
@@ -62,7 +80,7 @@
                     {% for sound in sounds %}
                     <option value="{{ sound }}" {% if sound == "classic-beep.wav" %}selected{% endif %}>{{ sound }}</option>
                     {% else %}
-                    <option value="classic-beep.wav">classic-beep.wav (бібліотека порожня, звірся з /sounds на alarm-core)</option>
+                    <option value="classic-beep.wav">classic-beep.wav (бібліотека порожня — перевір /sounds на alarm-core)</option>
                     {% endfor %}
                 </select>
             </label><br>
@@ -75,5 +93,97 @@
             <button type="submit">Додати</button>
         </form>
     </fieldset>
+
+    <fieldset>
+        <legend>Дебаг: миттєве програвання</legend>
+        <label>Звук:
+            <select id="debug-sound">
+                {% for sound in sounds %}
+                <option value="{{ sound }}">{{ sound }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <div class="mixer-row">
+            <label for="debug-volume">Гучність:</label>
+            <input type="range" id="debug-volume" min="0" max="100" value="50"
+                   oninput="document.getElementById('debug-volume-readout').value = this.value + '%'">
+            <output id="debug-volume-readout">50%</output>
+        </div>
+        <div class="mixer-row">
+            <button type="button" onclick="debugPlay()">▶ Play</button>
+            <button type="button" id="debug-pause-btn" onclick="debugPauseToggle()">⏸ Pause</button>
+            <button type="button" onclick="debugStop()">⏹ Stop</button>
+            <span id="debug-status"></span>
+        </div>
+    </fieldset>
+
+    <script>
+        // Prefill the new-alarm time with "now + 1 min" for convenience.
+        document.addEventListener('DOMContentLoaded', () => {
+            const timeInput = document.getElementById('time-input');
+            if (timeInput && !timeInput.value) {
+                const now = new Date();
+                now.setMinutes(now.getMinutes() + 1);
+                const hh = String(now.getHours()).padStart(2, '0');
+                const mm = String(now.getMinutes()).padStart(2, '0');
+                timeInput.value = `${hh}:${mm}`;
+            }
+        });
+
+        let debugPaused = false;
+
+        async function debugPlay() {
+            debugPaused = false;
+            document.getElementById('debug-pause-btn').textContent = '⏸ Pause';
+            const sound = document.getElementById('debug-sound').value;
+            const volume = parseInt(document.getElementById('debug-volume').value, 10);
+            const status = document.getElementById('debug-status');
+            status.textContent = 'Відтворення...';
+            try {
+                const res = await fetch('/debug/play', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({sound_file: sound, volume: volume})
+                });
+                const body = await res.json();
+                if (!res.ok) {
+                    status.textContent = 'Помилка: ' + (body.detail || res.status);
+                } else {
+                    status.textContent = 'Грає: ' + sound + ' (' + volume + '%)';
+                }
+            } catch (e) {
+                status.textContent = 'Помилка запиту';
+            }
+        }
+
+        async function debugPauseToggle() {
+            const btn = document.getElementById('debug-pause-btn');
+            const status = document.getElementById('debug-status');
+            try {
+                if (!debugPaused) {
+                    await fetch('/debug/pause', {method: 'POST'});
+                    btn.textContent = '▶ Resume';
+                    status.textContent = 'На паузі';
+                    debugPaused = true;
+                } else {
+                    await fetch('/debug/resume', {method: 'POST'});
+                    btn.textContent = '⏸ Pause';
+                    status.textContent = 'Відтворення...';
+                    debugPaused = false;
+                }
+            } catch (e) {
+                status.textContent = 'Помилка запиту';
+            }
+        }
+
+        async function debugStop() {
+            try {
+                await fetch('/debug/stop', {method: 'POST'});
+            } catch (e) { /* ignore */ }
+            document.getElementById('debug-status').textContent = 'Зупинено';
+            debugPaused = false;
+            document.getElementById('debug-pause-btn').textContent = '⏸ Pause';
+        }
+    </script>
 </body>
 </html>
