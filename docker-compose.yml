@@ -26,6 +26,7 @@ services:
     volumes:
       - ./data:/data
       - /var/run/dbus:/var/run/dbus
+      - /var/run/dbus:/var/run/dbus
       - /var/run/bluealsa:/var/run/bluealsa   # needed to play audio via the bluealsa ALSA plugin
     ports:
       - "8082:8082"

@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libasound2-plugin-bluez \
     && rm -rf /var/lib/apt/lists/*
 
+<<<<<<< Updated upstream
 RUN cat > /etc/asound.conf << 'EOF'
 pcm.bluealsa {
     @args [ DEV PROFILE SRV ]
@@ -47,6 +48,9 @@ ctl.bluealsa {
     service $SRV
 }
 EOF
+=======
+COPY asound.conf /etc/asound.conf
+>>>>>>> Stashed changes
 
 WORKDIR /app
 COPY requirements.txt .
