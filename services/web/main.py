@@ -59,6 +59,10 @@ def index(request: Request):
         sounds = requests.get(f"{ALARM_CORE_URL}/sounds", timeout=5).json().get("sounds", [])
     except requests.RequestException:
         sounds = []
+    try:
+        server_time = requests.get(f"{ALARM_CORE_URL}/server-time", timeout=5).json()
+    except requests.RequestException:
+        server_time = {"tz": "unknown", "now": None, "now_hhmm": None}
 
     alarms = sorted(alarms, key=lambda a: a.get("time", ""))
     for a in alarms:
@@ -72,6 +76,7 @@ def index(request: Request):
             "bt_status": bt_status,
             "sounds": sounds,
             "error": error,
+            "server_time": server_time,
         },
     )
 

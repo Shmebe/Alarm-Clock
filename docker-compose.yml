@@ -20,6 +20,7 @@ services:
     environment:
       - DB_PATH=/data/alarms.db
       - BT_MANAGER_URL=http://host.docker.internal:8081
+      - TZ=${TZ:-Europe/Stockholm}   # override with `TZ=... docker compose up -d` if needed
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:

@@ -3,6 +3,8 @@ import os
 import signal
 import subprocess
 import threading
+import time as time_mod
+from datetime import datetime
 from typing import List
 
 import requests
@@ -176,6 +178,13 @@ def list_sounds():
     except FileNotFoundError:
         files = []
     return {"sounds": files}
+
+
+@app.get("/server-time")
+def server_time():
+    now = datetime.now()
+    tz_name = os.environ.get("TZ") or (time_mod.tzname[0] if time_mod.tzname else "unknown")
+    return {"tz": tz_name, "now": now.isoformat(), "now_hhmm": now.strftime("%H:%M")}
 
 
 @app.get("/bt-status")
