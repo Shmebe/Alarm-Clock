@@ -124,6 +124,12 @@ def dismiss_alarm(alarm_id: int):
     return RedirectResponse("/", status_code=303)
 
 
+@app.post("/alarms/{alarm_id}/snooze")
+def snooze_alarm(alarm_id: int, minutes: int = Form(9)):
+    requests.post(f"{ALARM_CORE_URL}/alarms/{alarm_id}/snooze", json={"minutes": minutes}, timeout=5)
+    return RedirectResponse("/", status_code=303)
+
+
 @app.post("/alarms/{alarm_id}/toggle")
 def toggle_alarm(alarm_id: int):
     requests.post(f"{ALARM_CORE_URL}/alarms/{alarm_id}/toggle", timeout=5)

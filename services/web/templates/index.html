@@ -2,131 +2,285 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Alarm Clock</title>
     <style>
-        body { font-family: sans-serif; max-width: 760px; margin: 2rem auto; padding: 0 1rem; }
-        .badge { padding: 0.2rem 0.6rem; border-radius: 4px; color: white; font-size: 0.85rem; }
-        .badge.on { background: #2e7d32; }
-        .badge.off { background: #c62828; }
-        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-        td, th { text-align: left; padding: 0.4rem; border-bottom: 1px solid #ddd; }
+        :root {
+            --bg: #0b0d12;
+            --panel: #151823;
+            --panel-2: #1b1f2c;
+            --border: #262b3a;
+            --text: #e9ebf1;
+            --text-dim: #8d93a3;
+            --accent-1: #7c5cff;
+            --accent-2: #4f8cff;
+            --accent-grad: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+            --danger-1: #ff5f6d;
+            --danger-2: #ff9d4d;
+            --danger-grad: linear-gradient(135deg, var(--danger-1), var(--danger-2));
+            --success: #34d399;
+            --radius: 18px;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: radial-gradient(1200px 600px at 20% -10%, #1a1030 0%, var(--bg) 55%);
+            color: var(--text);
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 2rem 1.25rem 4rem;
+        }
+        h1 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            margin: 0 0 1.2rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            font-size: 0.85rem;
+        }
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.25rem 1.4rem;
+            margin-top: 1.1rem;
+        }
+        .card legend, .card > .card-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text-dim);
+            margin-bottom: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            font-size: 0.75rem;
+        }
+        .error-banner {
+            background: rgba(255, 95, 109, 0.12);
+            border: 1px solid rgba(255, 95, 109, 0.4);
+            color: #ff9a9a;
+            padding: 0.7rem 1rem;
+            border-radius: var(--radius);
+            margin-bottom: 1rem;
+        }
+        .badge { padding: 0.25rem 0.7rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
+        .badge.on { background: rgba(52, 211, 153, 0.15); color: var(--success); }
+        .badge.off { background: rgba(255, 95, 109, 0.15); color: var(--danger-1); }
+
+        .clock-row {
+            display: flex; align-items: baseline; justify-content: space-between;
+            flex-wrap: wrap; gap: 0.6rem;
+        }
+        .clock { font-size: 2.4rem; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+        .tz-note { font-size: 0.78rem; color: var(--text-dim); }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 0.4rem; }
+        th { text-align: left; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em;
+             color: var(--text-dim); padding: 0.5rem 0.5rem; border-bottom: 1px solid var(--border); }
+        td { padding: 0.6rem 0.5rem; border-bottom: 1px solid var(--border); font-size: 0.92rem; }
+        tr:last-child td { border-bottom: none; }
+        .disabled-row td { opacity: 0.4; }
+        .countdown { font-variant-numeric: tabular-nums; color: var(--text-dim); }
+
+        .state { padding: 0.2rem 0.65rem; border-radius: 999px; font-size: 0.72rem; font-weight: 700;
+                 letter-spacing: 0.02em; white-space: nowrap; }
+        .state-scheduled { background: rgba(141, 147, 163, 0.15); color: var(--text-dim); }
+        .state-triggered { background: rgba(249, 168, 37, 0.18); color: #f9a825; }
+        .state-waiting_for_speaker { background: rgba(255, 95, 109, 0.18); color: var(--danger-1); }
+        .state-playing { background: rgba(52, 211, 153, 0.18); color: var(--success); }
+        .state-dismissed { background: rgba(141, 147, 163, 0.12); color: var(--text-dim); }
+
         form.inline { display: inline; }
-        fieldset { margin-top: 2rem; }
-        .mixer-row { display: flex; align-items: center; gap: 0.6rem; margin: 0.4rem 0; }
-        .mixer-row input[type="range"] { flex: 1; }
-        .mixer-row output { width: 3.2em; text-align: right; font-variant-numeric: tabular-nums; }
-        .state { padding: 0.15rem 0.5rem; border-radius: 4px; color: white; font-size: 0.8rem; white-space: nowrap; }
-        .state-scheduled { background: #607d8b; }
-        .state-triggered { background: #f9a825; color: #222; }
-        .state-waiting_for_speaker { background: #e64a19; }
-        .state-playing { background: #2e7d32; }
-        .state-dismissed { background: #9e9e9e; }
-        .disabled-row { opacity: 0.45; }
-        #debug-status { font-size: 0.9rem; color: #555; }
-        .clock-box { display: flex; align-items: baseline; gap: 0.8rem; flex-wrap: wrap; margin: 0.6rem 0 1rem; }
-        .clock-box .clock { font-size: 1.8rem; font-variant-numeric: tabular-nums; font-weight: 600; }
-        .clock-box .tz-note { font-size: 0.8rem; color: #777; }
-        .countdown { font-variant-numeric: tabular-nums; color: #444; }
+        label { font-size: 0.85rem; color: var(--text-dim); }
+        input[type="text"], input[type="time"], select {
+            background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+            border-radius: 10px; padding: 0.45rem 0.6rem; font-size: 0.9rem; margin: 0.2rem 0 0.6rem;
+        }
+        .mixer-row { display: flex; align-items: center; gap: 0.6rem; margin: 0.5rem 0; }
+        .mixer-row input[type="range"] { flex: 1; accent-color: var(--accent-1); }
+        input[type="checkbox"], input[type="radio"] { accent-color: var(--accent-1); }
+        .mixer-row output { width: 3.4em; text-align: right; font-variant-numeric: tabular-nums; color: var(--text-dim); }
+
+        button {
+            border: none; border-radius: 10px; padding: 0.5rem 1rem; font-size: 0.85rem; font-weight: 600;
+            cursor: pointer; background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+        }
+        button:hover { border-color: var(--accent-2); }
+        button.primary { background: var(--accent-grad); color: white; border: none; }
+        button.danger { background: var(--danger-grad); color: white; border: none; }
+
+        #debug-status { font-size: 0.85rem; color: var(--text-dim); }
+
+        /* --- Ringing event panel --- */
+        .ringing-panel {
+            background: var(--danger-grad);
+            border-radius: var(--radius);
+            padding: 1.4rem 1.6rem;
+            margin-bottom: 1.2rem;
+            color: white;
+            box-shadow: 0 10px 40px rgba(255, 95, 109, 0.35);
+        }
+        .ringing-panel .top-row { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.6rem; }
+        .ringing-panel .label { font-size: 1.3rem; font-weight: 700; }
+        .ringing-panel .sub { font-size: 0.85rem; opacity: 0.85; margin-top: 0.15rem; }
+        .ringing-panel .elapsed { font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+        .ringing-panel .actions { display: flex; gap: 0.6rem; margin-top: 1.1rem; flex-wrap: wrap; }
+        .ringing-panel button {
+            background: rgba(255,255,255,0.18); color: white; border: 1px solid rgba(255,255,255,0.35);
+            font-size: 0.9rem; padding: 0.6rem 1.1rem;
+        }
+        .ringing-panel button.dismiss { background: white; color: #c0392b; border: none; }
+        .ringing-panel button:hover { border-color: white; }
     </style>
 </head>
 <body>
     <h1>Alarm Clock</h1>
 
     {% if error %}
-    <p style="background:#ffebee; color:#b71c1c; padding:0.6rem 1rem; border-radius:4px; border:1px solid #f5c6cb;">
-        ⚠ {{ error }}
-    </p>
+    <p class="error-banner">⚠ {{ error }}</p>
     {% endif %}
 
-    <div class="clock-box">
+    {% set ringing = alarms | selectattr("state", "equalto", "playing") | list %}
+    {% for alarm in ringing %}
+    <div class="ringing-panel">
+        <div class="top-row">
+            <div>
+                <div class="label">⏰ {{ alarm.label or "Будильник" }}</div>
+                <div class="sub">{{ alarm.sound_file }} · {{ alarm.volume }}%</div>
+            </div>
+            <div class="elapsed" data-started="{{ alarm.last_fired_at }}">00:00</div>
+        </div>
+        <div class="actions">
+            <form class="inline" method="post" action="/alarms/{{ alarm.id }}/snooze">
+                <input type="hidden" name="minutes" value="5">
+                <button type="submit">Відкласти 5 хв</button>
+            </form>
+            <form class="inline" method="post" action="/alarms/{{ alarm.id }}/snooze">
+                <input type="hidden" name="minutes" value="9">
+                <button type="submit">Відкласти 9 хв</button>
+            </form>
+            <form class="inline" method="post" action="/alarms/{{ alarm.id }}/snooze">
+                <input type="hidden" name="minutes" value="15">
+                <button type="submit">Відкласти 15 хв</button>
+            </form>
+            <form class="inline" method="post" action="/alarms/{{ alarm.id }}/dismiss">
+                <button type="submit" class="dismiss">✕ Вимкнути</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+
+    <div class="card clock-row">
         <span class="clock" id="live-clock">--:--:--</span>
         <span class="tz-note">
-            час браузера · сервер (alarm-core): {{ server_time.tz or "unknown" }}, зараз {{ server_time.now_hhmm or "?" }}
+            час браузера · сервер: {{ server_time.tz or "unknown" }}, {{ server_time.now_hhmm or "?" }}
         </span>
     </div>
 
-    <p>
-        Колонка:
+    <div class="card">
+        <div class="card-title">Колонка</div>
         {% if bt_status.connected %}
-            <span class="badge on">на зв'язку</span> ({{ bt_status.device_mac }})
+            <span class="badge on">на зв'язку</span> <span class="tz-note">{{ bt_status.device_mac }}</span>
         {% else %}
             <span class="badge off">не підключена</span>
         {% endif %}
-    </p>
+    </div>
 
-    <table>
-        <tr>
-            <th>Час</th><th>До спрацювання</th><th>Дні</th><th>Мітка</th><th>Звук</th><th>Гучність</th>
-            <th>Статус</th><th>Увімк.</th><th></th>
-        </tr>
-        {% for alarm in alarms %}
-        <tr class="{% if not alarm.enabled %}disabled-row{% endif %}">
-            <td>{{ alarm.time }}</td>
-            <td>
-                {% if alarm.enabled and alarm.state == "scheduled" %}
-                <span class="countdown" data-time="{{ alarm.time }}" data-days="{{ alarm.days }}">…</span>
-                {% else %}
-                <span class="countdown">—</span>
-                {% endif %}
-            </td>
-            <td>{{ alarm.days_display }}</td>
-            <td>{{ alarm.label }}</td>
-            <td>{{ alarm.sound_file }}</td>
-            <td>{{ alarm.volume }}%</td>
-            <td><span class="state state-{{ alarm.state }}">{{ alarm.state }}</span></td>
-            <td>
-                <form class="inline" method="post" action="/alarms/{{ alarm.id }}/toggle">
-                    <button type="submit">{{ "вимкн." if alarm.enabled else "увімк." }}</button>
-                </form>
-            </td>
-            <td>
-                <form class="inline" method="post" action="/alarms/{{ alarm.id }}/dismiss">
-                    <button type="submit">dismiss</button>
-                </form>
-                <form class="inline" method="post" action="/alarms/{{ alarm.id }}/delete">
-                    <button type="submit">видалити</button>
-                </form>
-            </td>
-        </tr>
-        {% else %}
-        <tr><td colspan="9">Будильників ще нема.</td></tr>
-        {% endfor %}
-    </table>
+    <div class="card">
+        <div class="card-title">Будильники</div>
+        <table>
+            <tr>
+                <th>Час</th><th>До спрацювання</th><th>Дні</th><th>Мітка</th><th>Звук</th><th>Гучність</th>
+                <th>Статус</th><th>Увімк.</th><th></th>
+            </tr>
+            {% for alarm in alarms %}
+            <tr class="{% if not alarm.enabled %}disabled-row{% endif %}">
+                <td>{{ alarm.time }}</td>
+                <td>
+                    {% if alarm.enabled and alarm.state == "scheduled" %}
+                    <span class="countdown" data-time="{{ alarm.time }}" data-days="{{ alarm.days }}">…</span>
+                    {% else %}
+                    <span class="countdown">—</span>
+                    {% endif %}
+                </td>
+                <td>{{ alarm.days_display }}</td>
+                <td>{{ alarm.label }}</td>
+                <td>{{ alarm.sound_file }}</td>
+                <td>{{ alarm.volume }}%</td>
+                <td><span class="state state-{{ alarm.state }}">{{ alarm.state }}</span></td>
+                <td>
+                    <form class="inline" method="post" action="/alarms/{{ alarm.id }}/toggle">
+                        <button type="submit">{{ "вимкн." if alarm.enabled else "увімк." }}</button>
+                    </form>
+                </td>
+                <td>
+                    <form class="inline" method="post" action="/alarms/{{ alarm.id }}/dismiss">
+                        <button type="submit">dismiss</button>
+                    </form>
+                    <form class="inline" method="post" action="/alarms/{{ alarm.id }}/delete">
+                        <button type="submit">видалити</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="9">Будильників ще нема.</td></tr>
+            {% endfor %}
+        </table>
+    </div>
 
-    <fieldset>
-        <legend>Новий алярм</legend>
-        <form method="post" action="/alarms">
-            <label>Час: <input type="time" name="time" id="time-input" required></label><br>
-            <label>Дні (mon,tue,... або "once"): <input type="text" name="days" value="once"></label><br>
-            <label>Мітка: <input type="text" name="label"></label><br>
-            <label>Звук:
+    <div class="card">
+        <div class="card-title">Новий алярм</div>
+        <form method="post" action="/alarms" onsubmit="return validateDaysBeforeSubmit()">
+            <div><label>Час</label><br><input type="time" name="time" id="time-input" required></div>
+            <div>
+                <label>Періодичність</label><br>
+                <label><input type="radio" name="days-mode" value="once" checked onchange="updateDaysMode()"> Одноразово</label>
+                &nbsp;&nbsp;
+                <label><input type="radio" name="days-mode" value="repeat" onchange="updateDaysMode()"> Повторювати</label>
+                <div id="days-checkboxes" style="display:none; margin-top:0.5rem;">
+                    <label><input type="checkbox" class="day-cb" value="mon" onchange="syncDaysHidden()"> Пн</label>
+                    <label><input type="checkbox" class="day-cb" value="tue" onchange="syncDaysHidden()"> Вт</label>
+                    <label><input type="checkbox" class="day-cb" value="wed" onchange="syncDaysHidden()"> Ср</label>
+                    <label><input type="checkbox" class="day-cb" value="thu" onchange="syncDaysHidden()"> Чт</label>
+                    <label><input type="checkbox" class="day-cb" value="fri" onchange="syncDaysHidden()"> Пт</label>
+                    <label><input type="checkbox" class="day-cb" value="sat" onchange="syncDaysHidden()"> Сб</label>
+                    <label><input type="checkbox" class="day-cb" value="sun" onchange="syncDaysHidden()"> Нд</label>
+                    <div style="margin-top:0.4rem;">
+                        <button type="button" onclick="setDaysPreset('everyday')">Щодня</button>
+                        <button type="button" onclick="setDaysPreset('weekdays')">Будні</button>
+                        <button type="button" onclick="setDaysPreset('weekend')">Вихідні</button>
+                    </div>
+                </div>
+                <input type="hidden" name="days" id="days-hidden" value="once">
+            </div>
+            <div><label>Мітка</label><br><input type="text" name="label"></div>
+            <div><label>Звук</label><br>
                 <select name="sound_file" required>
                     {% for sound in sounds %}
                     <option value="{{ sound }}" {% if sound == "classic-beep.wav" %}selected{% endif %}>{{ sound }}</option>
                     {% else %}
-                    <option value="classic-beep.wav">classic-beep.wav (бібліотека порожня — перевір /sounds на alarm-core)</option>
+                    <option value="classic-beep.wav">classic-beep.wav (бібліотека порожня)</option>
                     {% endfor %}
                 </select>
-            </label><br>
+            </div>
             <div class="mixer-row">
                 <label for="volume">Гучність:</label>
                 <input type="range" id="volume" name="volume" min="0" max="100" value="50"
                        oninput="document.getElementById('volume-readout').value = this.value + '%'">
                 <output id="volume-readout">50%</output>
             </div>
-            <button type="submit">Додати</button>
+            <button type="submit" class="primary">Додати</button>
         </form>
-    </fieldset>
+    </div>
 
-    <fieldset>
-        <legend>Дебаг: миттєве програвання</legend>
-        <label>Звук:
-            <select id="debug-sound">
-                {% for sound in sounds %}
-                <option value="{{ sound }}">{{ sound }}</option>
-                {% endfor %}
-            </select>
-        </label>
+    <div class="card">
+        <div class="card-title">Дебаг: миттєве програвання</div>
+        <label>Звук</label><br>
+        <select id="debug-sound">
+            {% for sound in sounds %}
+            <option value="{{ sound }}">{{ sound }}</option>
+            {% endfor %}
+        </select>
         <div class="mixer-row">
             <label for="debug-volume">Гучність:</label>
             <input type="range" id="debug-volume" min="0" max="100" value="50"
@@ -139,10 +293,9 @@
             <button type="button" onclick="debugStop()">⏹ Stop</button>
             <span id="debug-status"></span>
         </div>
-    </fieldset>
+    </div>
 
     <script>
-        // Prefill the new-alarm time with "now + 1 min" for convenience.
         document.addEventListener('DOMContentLoaded', () => {
             const timeInput = document.getElementById('time-input');
             if (timeInput && !timeInput.value) {
@@ -154,24 +307,57 @@
             }
         });
 
-        // --- Live clock + per-alarm countdowns, all computed from the
-        // browser's own clock so they're correct regardless of container TZ. ---
+        function updateDaysMode() {
+            const mode = document.querySelector('input[name="days-mode"]:checked').value;
+            document.getElementById('days-checkboxes').style.display = mode === 'repeat' ? 'block' : 'none';
+            syncDaysHidden();
+        }
+
+        function syncDaysHidden() {
+            const mode = document.querySelector('input[name="days-mode"]:checked').value;
+            const hidden = document.getElementById('days-hidden');
+            if (mode === 'once') {
+                hidden.value = 'once';
+                return;
+            }
+            const checked = Array.from(document.querySelectorAll('.day-cb:checked')).map(cb => cb.value);
+            hidden.value = checked.join(',');
+        }
+
+        function setDaysPreset(preset) {
+            const presets = {
+                everyday: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
+                weekdays: ['mon', 'tue', 'wed', 'thu', 'fri'],
+                weekend: ['sat', 'sun'],
+            };
+            const vals = presets[preset] || [];
+            document.querySelectorAll('.day-cb').forEach(cb => { cb.checked = vals.includes(cb.value); });
+            syncDaysHidden();
+        }
+
+        function validateDaysBeforeSubmit() {
+            syncDaysHidden();
+            const mode = document.querySelector('input[name="days-mode"]:checked').value;
+            if (mode === 'repeat' && document.querySelectorAll('.day-cb:checked').length === 0) {
+                alert('Вибери хоча б один день тижня, або перемкни на "Одноразово".');
+                return false;
+            }
+            return true;
+        }
+
         const DAY_INDEX = {sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6};
 
         function nextOccurrence(timeStr, daysStr, fromDate) {
             const [hh, mm] = timeStr.split(':').map(Number);
             if (Number.isNaN(hh) || Number.isNaN(mm)) return null;
-
             if (daysStr === 'once') {
                 const candidate = new Date(fromDate);
                 candidate.setHours(hh, mm, 0, 0);
                 if (candidate <= fromDate) candidate.setDate(candidate.getDate() + 1);
                 return candidate;
             }
-
             const wanted = daysStr.split(',').map(d => DAY_INDEX[d.trim()]).filter(v => v !== undefined);
             if (wanted.length === 0) return null;
-
             for (let add = 0; add < 8; add++) {
                 const c = new Date(fromDate);
                 c.setDate(c.getDate() + add);
@@ -194,7 +380,14 @@
             return 'через ' + parts.join(' ');
         }
 
-        function tickClockAndCountdowns() {
+        function formatElapsed(ms) {
+            const totalSec = Math.max(0, Math.floor(ms / 1000));
+            const mm = String(Math.floor(totalSec / 60)).padStart(2, '0');
+            const ss = String(totalSec % 60).padStart(2, '0');
+            return `${mm}:${ss}`;
+        }
+
+        function tick() {
             const now = new Date();
             const clockEl = document.getElementById('live-clock');
             if (clockEl) {
@@ -204,10 +397,20 @@
                 const next = nextOccurrence(el.dataset.time, el.dataset.days, now);
                 el.textContent = next ? formatRemaining(next - now) : '';
             });
+            document.querySelectorAll('.elapsed[data-started]').forEach(el => {
+                const started = new Date(el.dataset.started);
+                if (!isNaN(started)) {
+                    el.textContent = formatElapsed(now - started);
+                }
+            });
         }
 
-        tickClockAndCountdowns();
-        setInterval(tickClockAndCountdowns, 1000);
+        tick();
+        setInterval(tick, 1000);
+
+        // Full refresh periodically so a newly-ringing alarm's panel appears
+        // without the person having to manually reload the page.
+        setInterval(() => location.reload(), 15000);
 
         let debugPaused = false;
 

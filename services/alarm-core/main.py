@@ -4,15 +4,15 @@ import signal
 import subprocess
 import threading
 import time as time_mod
-from datetime import datetime
-from typing import List
+from datetime import datetime, timedelta
+from typing import List, Optional
 
 import requests
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, field_validator
 
 from models import Alarm, SessionLocal, init_db
-from scheduler import on_bt_connected, start_background
+from scheduler import on_bt_connected, start_background, stop_ringing
 from state_machine import AlarmState
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -36,6 +36,10 @@ class DebugPlayIn(BaseModel):
     volume: int = 50
 
 
+class SnoozeIn(BaseModel):
+    minutes: int = 9
+
+
 class AlarmIn(BaseModel):
     time: str
     days: str = "once"
@@ -53,6 +57,8 @@ class AlarmIn(BaseModel):
 class AlarmOut(AlarmIn):
     id: int
     state: str
+    last_fired_at: Optional[datetime] = None
+    snooze_until: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -122,6 +128,7 @@ def update_alarm(alarm_id: int, alarm: AlarmIn):
 
 @app.delete("/alarms/{alarm_id}")
 def delete_alarm(alarm_id: int):
+    stop_ringing(alarm_id)
     session = SessionLocal()
     try:
         db_alarm = session.get(Alarm, alarm_id)
@@ -136,14 +143,33 @@ def delete_alarm(alarm_id: int):
 
 @app.post("/alarms/{alarm_id}/dismiss")
 def dismiss_alarm(alarm_id: int):
+    stop_ringing(alarm_id)
     session = SessionLocal()
     try:
         db_alarm = session.get(Alarm, alarm_id)
         if not db_alarm:
             raise HTTPException(404, "Alarm not found")
         db_alarm.state = AlarmState.DISMISSED.value
+        db_alarm.snooze_until = None
         session.commit()
         return {"ok": True}
+    finally:
+        session.close()
+
+
+@app.post("/alarms/{alarm_id}/snooze")
+def snooze_alarm(alarm_id: int, payload: SnoozeIn = SnoozeIn()):
+    stop_ringing(alarm_id)
+    session = SessionLocal()
+    try:
+        db_alarm = session.get(Alarm, alarm_id)
+        if not db_alarm:
+            raise HTTPException(404, "Alarm not found")
+        minutes = max(1, payload.minutes)
+        db_alarm.state = AlarmState.SCHEDULED.value
+        db_alarm.snooze_until = datetime.now() + timedelta(minutes=minutes)
+        session.commit()
+        return {"ok": True, "snooze_until": db_alarm.snooze_until.isoformat()}
     finally:
         session.close()
 
@@ -156,6 +182,14 @@ def toggle_alarm(alarm_id: int):
         if not db_alarm:
             raise HTTPException(404, "Alarm not found")
         db_alarm.enabled = not db_alarm.enabled
+        if not db_alarm.enabled and db_alarm.state in (
+            AlarmState.TRIGGERED.value,
+            AlarmState.WAITING_FOR_SPEAKER.value,
+            AlarmState.PLAYING.value,
+        ):
+            stop_ringing(alarm_id)
+            db_alarm.state = AlarmState.DISMISSED.value
+            db_alarm.snooze_until = None
         session.commit()
         return {"ok": True, "enabled": db_alarm.enabled}
     finally:

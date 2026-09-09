@@ -19,6 +19,7 @@ Base = declarative_base()
 _COLUMNS_ADDED_AFTER_LAUNCH = {
     "volume": "INTEGER DEFAULT 50",
     "sound_file": "TEXT DEFAULT 'classic-beep.wav'",
+    "snooze_until": "DATETIME",
 }
 
 
@@ -34,6 +35,7 @@ class Alarm(Base):
     enabled = Column(Boolean, default=True)
     state = Column(String, default="scheduled")
     last_fired_at = Column(DateTime, nullable=True)
+    snooze_until = Column(DateTime, nullable=True)
 
 
 def _migrate_missing_columns():
