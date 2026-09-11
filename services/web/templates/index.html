@@ -4,40 +4,56 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Alarm Clock</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
+        /* --- Cyberpunk by Max --- */
         :root {
-            --bg: #0b0d12;
-            --panel: #151823;
-            --panel-2: #1b1f2c;
-            --border: #262b3a;
-            --text: #e9ebf1;
-            --text-dim: #8d93a3;
-            --accent-1: #7c5cff;
-            --accent-2: #4f8cff;
+            --bg: #050308;
+            --panel: #0d0a16;
+            --panel-2: #14101f;
+            --border: rgba(0, 234, 255, 0.2);
+            --border-pink: rgba(255, 43, 214, 0.25);
+            --text: #eaf6ff;
+            --text-dim: #7c85a3;
+            --accent-1: #ff2bd6;
+            --accent-2: #00eaff;
             --accent-grad: linear-gradient(135deg, var(--accent-1), var(--accent-2));
-            --danger-1: #ff5f6d;
-            --danger-2: #ff9d4d;
+            --danger-1: #ff2050;
+            --danger-2: #ff9500;
             --danger-grad: linear-gradient(135deg, var(--danger-1), var(--danger-2));
-            --success: #34d399;
-            --radius: 18px;
+            --snooze-1: #52012c;
+            --snooze-2: #12030d;
+            --snooze-grad: linear-gradient(135deg, var(--snooze-1), var(--snooze-2));
+            --success: #39ff14;
+            --radius: 14px;
+            --glow-cyan: 0 0 22px rgba(0, 234, 255, 0.28);
+            --glow-pink: 0 0 22px rgba(255, 43, 214, 0.28);
         }
         * { box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: radial-gradient(1200px 600px at 20% -10%, #1a1030 0%, var(--bg) 55%);
+            font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background:
+                radial-gradient(900px 500px at 10% -10%, rgba(255, 43, 214, 0.18) 0%, transparent 60%),
+                radial-gradient(900px 500px at 100% 10%, rgba(0, 234, 255, 0.14) 0%, transparent 55%),
+                repeating-linear-gradient(180deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 3px),
+                var(--bg);
             color: var(--text);
             max-width: 860px;
             margin: 0 auto;
             padding: 2rem 1.25rem 4rem;
+            font-size: 1.02rem;
         }
         h1 {
-            font-size: 1.4rem;
-            font-weight: 700;
-            letter-spacing: 0.02em;
-            margin: 0 0 1.2rem;
-            color: var(--text-dim);
-            text-transform: uppercase;
+            font-family: 'Orbitron', sans-serif;
             font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+            margin: 0 0 1.2rem;
+            color: var(--accent-2);
+            text-transform: uppercase;
+            text-shadow: var(--glow-cyan);
         }
         .card {
             background: var(--panel);
@@ -45,56 +61,66 @@
             border-radius: var(--radius);
             padding: 1.25rem 1.4rem;
             margin-top: 1.1rem;
+            box-shadow: inset 0 0 40px rgba(0, 234, 255, 0.03);
         }
-        .card legend, .card > .card-title {
+        .card .card-title {
+            font-family: 'Orbitron', sans-serif;
             font-weight: 600;
-            font-size: 0.95rem;
-            color: var(--text-dim);
+            color: var(--accent-2);
             margin-bottom: 0.8rem;
             text-transform: uppercase;
-            letter-spacing: 0.04em;
-            font-size: 0.75rem;
+            letter-spacing: 0.12em;
+            font-size: 0.7rem;
         }
         .error-banner {
-            background: rgba(255, 95, 109, 0.12);
-            border: 1px solid rgba(255, 95, 109, 0.4);
-            color: #ff9a9a;
+            background: rgba(255, 32, 80, 0.12);
+            border: 1px solid rgba(255, 32, 80, 0.45);
+            color: #ff8fa8;
             padding: 0.7rem 1rem;
             border-radius: var(--radius);
             margin-bottom: 1rem;
         }
-        .badge { padding: 0.25rem 0.7rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
-        .badge.on { background: rgba(52, 211, 153, 0.15); color: var(--success); }
-        .badge.off { background: rgba(255, 95, 109, 0.15); color: var(--danger-1); }
+        .badge { padding: 0.25rem 0.7rem; border-radius: 999px; font-size: 0.8rem; font-weight: 700; }
+        .badge.on { background: rgba(57, 255, 20, 0.12); color: var(--success); box-shadow: 0 0 12px rgba(57,255,20,0.25); }
+        .badge.off { background: rgba(255, 32, 80, 0.14); color: var(--danger-1); }
 
         .clock-row {
             display: flex; align-items: baseline; justify-content: space-between;
             flex-wrap: wrap; gap: 0.6rem;
         }
-        .clock { font-size: 2.4rem; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+        .clock {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.4rem; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 0.04em;
+            color: var(--accent-2);
+            text-shadow: var(--glow-cyan);
+        }
         .tz-note { font-size: 0.78rem; color: var(--text-dim); }
 
         table { width: 100%; border-collapse: collapse; margin-top: 0.4rem; }
-        th { text-align: left; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em;
+        th { text-align: left; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em;
              color: var(--text-dim); padding: 0.5rem 0.5rem; border-bottom: 1px solid var(--border); }
-        td { padding: 0.6rem 0.5rem; border-bottom: 1px solid var(--border); font-size: 0.92rem; }
+        td { padding: 0.6rem 0.5rem; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
         tr:last-child td { border-bottom: none; }
         .disabled-row td { opacity: 0.4; }
-        .countdown { font-variant-numeric: tabular-nums; color: var(--text-dim); }
+        .countdown { font-variant-numeric: tabular-nums; color: var(--accent-2); }
 
-        .state { padding: 0.2rem 0.65rem; border-radius: 999px; font-size: 0.72rem; font-weight: 700;
-                 letter-spacing: 0.02em; white-space: nowrap; }
-        .state-scheduled { background: rgba(141, 147, 163, 0.15); color: var(--text-dim); }
-        .state-triggered { background: rgba(249, 168, 37, 0.18); color: #f9a825; }
-        .state-waiting_for_speaker { background: rgba(255, 95, 109, 0.18); color: var(--danger-1); }
-        .state-playing { background: rgba(52, 211, 153, 0.18); color: var(--success); }
-        .state-dismissed { background: rgba(141, 147, 163, 0.12); color: var(--text-dim); }
+        .state { padding: 0.2rem 0.65rem; border-radius: 999px; font-size: 0.7rem; font-weight: 700;
+                 letter-spacing: 0.03em; white-space: nowrap; text-transform: uppercase; }
+        .state-scheduled { background: rgba(124, 133, 163, 0.15); color: var(--text-dim); }
+        .state-triggered { background: rgba(255, 149, 0, 0.18); color: var(--danger-2); }
+        .state-waiting_for_speaker { background: rgba(255, 32, 80, 0.18); color: var(--danger-1); }
+        .state-playing { background: rgba(57, 255, 20, 0.16); color: var(--success); }
+        .state-dismissed { background: rgba(124, 133, 163, 0.12); color: var(--text-dim); }
 
         form.inline { display: inline; }
         label { font-size: 0.85rem; color: var(--text-dim); }
         input[type="text"], input[type="time"], select {
             background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
-            border-radius: 10px; padding: 0.45rem 0.6rem; font-size: 0.9rem; margin: 0.2rem 0 0.6rem;
+            border-radius: 8px; padding: 0.45rem 0.6rem; font-size: 0.95rem; margin: 0.2rem 0 0.6rem;
+            font-family: inherit;
+        }
+        input[type="text"]:focus, input[type="time"]:focus, select:focus {
+            outline: none; border-color: var(--accent-2); box-shadow: var(--glow-cyan);
         }
         .mixer-row { display: flex; align-items: center; gap: 0.6rem; margin: 0.5rem 0; }
         .mixer-row input[type="range"] { flex: 1; accent-color: var(--accent-1); }
@@ -102,39 +128,57 @@
         .mixer-row output { width: 3.4em; text-align: right; font-variant-numeric: tabular-nums; color: var(--text-dim); }
 
         button {
-            border: none; border-radius: 10px; padding: 0.5rem 1rem; font-size: 0.85rem; font-weight: 600;
+            border-radius: 8px; padding: 0.5rem 1rem; font-size: 0.85rem; font-weight: 700;
             cursor: pointer; background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+            font-family: 'Rajdhani', sans-serif; letter-spacing: 0.02em;
+            transition: box-shadow 0.15s, border-color 0.15s;
         }
-        button:hover { border-color: var(--accent-2); }
-        button.primary { background: var(--accent-grad); color: white; border: none; }
-        button.danger { background: var(--danger-grad); color: white; border: none; }
+        button:hover { border-color: var(--accent-2); box-shadow: var(--glow-cyan); }
+        button.primary { background: var(--accent-grad); color: #06040a; border: none; text-shadow: none; }
+        button.primary:hover { box-shadow: var(--glow-pink); }
+        button.danger { background: var(--danger-grad); color: #1a0500; border: none; }
 
         #debug-status { font-size: 0.85rem; color: var(--text-dim); }
 
-        /* --- Ringing event panel --- */
-        .ringing-panel {
-            background: var(--danger-grad);
+        /* --- Alarm event panel: ringing (bright, urgent) vs snoozed (darker, redder) --- */
+        .event-panel {
             border-radius: var(--radius);
             padding: 1.4rem 1.6rem;
             margin-bottom: 1.2rem;
             color: white;
-            box-shadow: 0 10px 40px rgba(255, 95, 109, 0.35);
         }
-        .ringing-panel .top-row { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.6rem; }
-        .ringing-panel .label { font-size: 1.3rem; font-weight: 700; }
-        .ringing-panel .sub { font-size: 0.85rem; opacity: 0.85; margin-top: 0.15rem; }
-        .ringing-panel .elapsed { font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; }
-        .ringing-panel .actions { display: flex; gap: 0.6rem; margin-top: 1.1rem; flex-wrap: wrap; }
-        .ringing-panel button {
-            background: rgba(255,255,255,0.18); color: white; border: 1px solid rgba(255,255,255,0.35);
+        .event-panel.mode-ringing {
+            background: var(--danger-grad);
+            box-shadow: 0 0 45px rgba(255, 32, 80, 0.45);
+            animation: pulse-ring 1.6s ease-in-out infinite;
+        }
+        .event-panel.mode-snoozed {
+            background: var(--snooze-grad);
+            border: 1px solid rgba(255, 32, 80, 0.35);
+            box-shadow: 0 0 25px rgba(82, 1, 44, 0.55);
+        }
+        @keyframes pulse-ring {
+            0%, 100% { box-shadow: 0 0 30px rgba(255, 32, 80, 0.4); }
+            50% { box-shadow: 0 0 55px rgba(255, 149, 0, 0.55); }
+        }
+        .event-panel .top-row { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.6rem; }
+        .event-panel .label { font-family: 'Orbitron', sans-serif; font-size: 1.15rem; font-weight: 700; }
+        .event-panel .sub { font-size: 0.85rem; opacity: 0.85; margin-top: 0.2rem; }
+        .event-panel .timer {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.7rem; font-weight: 700; font-variant-numeric: tabular-nums;
+        }
+        .event-panel .actions { display: flex; gap: 0.6rem; margin-top: 1.1rem; flex-wrap: wrap; }
+        .event-panel button {
+            background: rgba(255,255,255,0.16); color: white; border: 1px solid rgba(255,255,255,0.3);
             font-size: 0.9rem; padding: 0.6rem 1.1rem;
         }
-        .ringing-panel button.dismiss { background: white; color: #c0392b; border: none; }
-        .ringing-panel button:hover { border-color: white; }
+        .event-panel button.dismiss { background: white; color: #7a0026; border: none; }
+        .event-panel button:hover { border-color: white; box-shadow: none; }
     </style>
 </head>
 <body>
-    <h1>Alarm Clock</h1>
+    <h1>Alarm Clock // Cyberpunk by Max</h1>
 
     {% if error %}
     <p class="error-banner">⚠ {{ error }}</p>
@@ -142,13 +186,13 @@
 
     {% set ringing = alarms | selectattr("state", "equalto", "playing") | list %}
     {% for alarm in ringing %}
-    <div class="ringing-panel">
+    <div class="event-panel mode-ringing">
         <div class="top-row">
             <div>
                 <div class="label">⏰ {{ alarm.label or "Будильник" }}</div>
                 <div class="sub">{{ alarm.sound_file }} · {{ alarm.volume }}%</div>
             </div>
-            <div class="elapsed" data-started="{{ alarm.last_fired_at }}">00:00</div>
+            <div class="timer elapsed" data-started="{{ alarm.last_fired_at }}">00:00</div>
         </div>
         <div class="actions">
             <form class="inline" method="post" action="/alarms/{{ alarm.id }}/snooze">
@@ -165,6 +209,35 @@
             </form>
             <form class="inline" method="post" action="/alarms/{{ alarm.id }}/dismiss">
                 <button type="submit" class="dismiss">✕ Вимкнути</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+
+    {% set snoozed = alarms | selectattr("state", "equalto", "scheduled") | selectattr("snooze_until") | list %}
+    {% for alarm in snoozed %}
+    <div class="event-panel mode-snoozed">
+        <div class="top-row">
+            <div>
+                <div class="label">😴 {{ alarm.label or "Будильник" }} — відкладено</div>
+                <div class="sub">{{ alarm.sound_file }} · {{ alarm.volume }}% · прокинеться о {{ alarm.snooze_until[11:16] }}</div>
+            </div>
+            <div class="timer countdown-to" data-until="{{ alarm.snooze_until }}">00:00</div>
+        </div>
+        <div class="actions">
+            <form class="inline" method="post" action="/alarms/{{ alarm.id }}/snooze">
+                <input type="hidden" name="minutes" value="5">
+                <button type="submit">Ще 5 хв</button>
+            </form>
+            <form class="inline" method="post" action="/alarms/{{ alarm.id }}/snooze">
+                <input type="hidden" name="minutes" value="9">
+                <button type="submit">Ще 9 хв</button>
+            </form>
+            <form class="inline" method="post" action="/alarms/{{ alarm.id }}/dismiss">
+                <button type="submit">Прокинутись зараз</button>
+            </form>
+            <form class="inline" method="post" action="/alarms/{{ alarm.id }}/dismiss">
+                <button type="submit" class="dismiss">✕ Вимкнути зовсім</button>
             </form>
         </div>
     </div>
@@ -197,8 +270,10 @@
             <tr class="{% if not alarm.enabled %}disabled-row{% endif %}">
                 <td>{{ alarm.time }}</td>
                 <td>
-                    {% if alarm.enabled and alarm.state == "scheduled" %}
+                    {% if alarm.enabled and alarm.state == "scheduled" and not alarm.snooze_until %}
                     <span class="countdown" data-time="{{ alarm.time }}" data-days="{{ alarm.days }}">…</span>
+                    {% elif alarm.snooze_until %}
+                    <span class="countdown">😴 відкладено</span>
                     {% else %}
                     <span class="countdown">—</span>
                     {% endif %}
@@ -380,7 +455,7 @@
             return 'через ' + parts.join(' ');
         }
 
-        function formatElapsed(ms) {
+        function formatClockMs(ms) {
             const totalSec = Math.max(0, Math.floor(ms / 1000));
             const mm = String(Math.floor(totalSec / 60)).padStart(2, '0');
             const ss = String(totalSec % 60).padStart(2, '0');
@@ -397,19 +472,23 @@
                 const next = nextOccurrence(el.dataset.time, el.dataset.days, now);
                 el.textContent = next ? formatRemaining(next - now) : '';
             });
+            // Ringing: count UP from when it started.
             document.querySelectorAll('.elapsed[data-started]').forEach(el => {
                 const started = new Date(el.dataset.started);
-                if (!isNaN(started)) {
-                    el.textContent = formatElapsed(now - started);
-                }
+                if (!isNaN(started)) el.textContent = formatClockMs(now - started);
+            });
+            // Snoozed: count DOWN to when it'll ring again.
+            document.querySelectorAll('.countdown-to[data-until]').forEach(el => {
+                const until = new Date(el.dataset.until);
+                if (!isNaN(until)) el.textContent = formatClockMs(until - now);
             });
         }
 
         tick();
         setInterval(tick, 1000);
 
-        // Full refresh periodically so a newly-ringing alarm's panel appears
-        // without the person having to manually reload the page.
+        // Full refresh periodically so a newly-ringing/snoozed alarm's panel
+        // appears without the person having to manually reload the page.
         setInterval(() => location.reload(), 15000);
 
         let debugPaused = false;
