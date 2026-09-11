@@ -17,6 +17,14 @@ BT_MANAGER_URL = os.environ.get("BT_MANAGER_URL", "http://localhost:8081")
 SOUNDS_DIR = os.environ.get("SOUNDS_DIR", "/app/sounds")
 CHECK_INTERVAL = 20  # seconds
 
+# A2DP over Bluetooth has higher and jitterier latency than local audio.
+# aplay's default buffer/period is tuned for local hardware and underruns
+# constantly on this link, which ALSA "fixes" by silently restarting the
+# stream on every xrun - audible as stutter/stammer throughout playback.
+# Latency doesn't matter at all for an alarm clock, so trade it generously
+# for stability: 1s buffer, 200ms period.
+AUDIO_BUFFER_ARGS = ["--buffer-time=1000000", "--period-time=200000"]
+
 # --- Looping ringer management -------------------------------------------
 # One alarm can be "ringing" at a time per alarm_id: a background thread
 # that keeps restarting `aplay` until told to stop. Tracked in-memory only -
@@ -45,13 +53,13 @@ def _play_sound(sound_file, device_mac, volume=50):
         log.error("Sound file missing, cannot play: %s", sound_path)
         return
     log.info("Playing %s on %s", sound_path, device_arg)
-    subprocess.Popen(["aplay", "-D", device_arg, sound_path])
+    subprocess.Popen(["aplay", "-D", device_arg, *AUDIO_BUFFER_ARGS, sound_path])
 
 
 def _ring_loop(alarm_id, sound_path, device_arg, stop_event):
     log.info("Alarm %s: starting ring loop on %s", alarm_id, device_arg)
     while not stop_event.is_set():
-        proc = subprocess.Popen(["aplay", "-D", device_arg, sound_path])
+        proc = subprocess.Popen(["aplay", "-D", device_arg, *AUDIO_BUFFER_ARGS, sound_path])
         while proc.poll() is None:
             if stop_event.wait(timeout=0.2):
                 proc.terminate()

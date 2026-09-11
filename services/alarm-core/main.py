@@ -20,6 +20,7 @@ log = logging.getLogger("alarm-core")
 
 BT_MANAGER_URL = os.environ.get("BT_MANAGER_URL", "http://localhost:8081")
 SOUNDS_DIR = os.environ.get("SOUNDS_DIR", "/app/sounds")
+AUDIO_BUFFER_ARGS = ["--buffer-time=1000000", "--period-time=200000"]
 
 app = FastAPI(title="alarm-core")
 
@@ -256,7 +257,7 @@ def debug_play(payload: DebugPlayIn):
 
     with _test_lock:
         _stop_test_process()
-        _test_process = subprocess.Popen(["aplay", "-D", device_arg, sound_path])
+        _test_process = subprocess.Popen(["aplay", "-D", device_arg, *AUDIO_BUFFER_ARGS, sound_path])
     return {"ok": True, "playing": payload.sound_file, "volume": volume}
 
 
